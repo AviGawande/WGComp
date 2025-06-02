@@ -18,6 +18,11 @@ qt_add_qml_module(appWireComponent
     QML_FILES
         Main.qml
         QML_FILES MachineComp.qml
+        QML_FILES SubProgressBar.qml
+        QML_FILES OperationStatus.qml
+        QML_FILES ParameterSection.qml
+        QML_FILES MainProgressBar.qml
+        QML_FILES MachineTab.qml
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
