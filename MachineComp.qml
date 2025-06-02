@@ -7,11 +7,140 @@ Rectangle {
     height: implicitHeight
     implicitHeight: contentColumn.implicitHeight + 30
 
-    color: "#f0f0f0"
+    color: "#1e1e1e"
     border.color: "#333333"
     border.width: 1
 
     property int currentOpenMachine: -1
+
+    // Progress data structure for each machine
+    property var machineProgressData: {
+        var data = {};
+        for (var i = 0; i < 6; i++) {
+            data[i] = {
+                currentMainStep: 0,  // 0=A, 1=B, 2=C, 3=D
+                subStepsCompleted: [false, false, false, false, false], // P1, P2, P3, P4, P5
+                operationStatus: [false, false, false, false],
+                parameters: [false, false, false, false, false, false],
+                isComplete: false,
+                isAutoProgressRunning: false
+            };
+        }
+        return data;
+    }
+
+    // Function to get completed sub-steps count
+    function getCompletedSubSteps(machineIndex) {
+        var machine = machineProgressData[machineIndex];
+        var count = 0;
+        for (var i = 0; i < machine.subStepsCompleted.length; i++) {
+            if (machine.subStepsCompleted[i]) count++;
+        }
+        return count;
+    }
+
+    // Function to check if all sub-steps are completed
+    function areAllSubStepsCompleted(machineIndex) {
+        var machine = machineProgressData[machineIndex];
+        for (var i = 0; i < machine.subStepsCompleted.length; i++) {
+            if (!machine.subStepsCompleted[i]) return false;
+        }
+        return true;
+    }
+
+    // Function to advance sub-progress
+    function toggleSubStep(machineIndex, subIndex) {
+        var machine = machineProgressData[machineIndex];
+
+        // Toggle the sub-step
+        machine.subStepsCompleted[subIndex] = !machine.subStepsCompleted[subIndex];
+
+        // Check if all sub-steps are now completed
+        if (areAllSubStepsCompleted(machineIndex)) {
+            // Advance main progress
+            if (machine.currentMainStep < 3) { // 0,1,2,3 = A,B,C,D
+                machine.currentMainStep++;
+                // Reset sub-steps for next main step
+                machine.subStepsCompleted = [false, false, false, false, false];
+
+                // Update operation status
+                machine.operationStatus[machine.currentMainStep - 1] = true;
+            } else {
+                // All main steps completed
+                machine.isComplete = true;
+                machine.operationStatus[3] = true; // Mark OP-4 as complete
+                machine.isAutoProgressRunning = false; // Stop auto progress
+            }
+        }
+
+        // Trigger UI update
+        machineProgressData = machineProgressData;
+    }
+
+    // Function to advance to next incomplete sub-step
+    function advanceNextSubStep(machineIndex) {
+        var machine = machineProgressData[machineIndex];
+
+        if (machine.isComplete) return;
+
+        // Find next incomplete sub-step
+        for (var i = 0; i < machine.subStepsCompleted.length; i++) {
+            if (!machine.subStepsCompleted[i]) {
+                toggleSubStep(machineIndex, i);
+                break;
+            }
+        }
+    }
+
+    // Function to go back one sub-step
+    function goBackSubStep(machineIndex) {
+        var machine = machineProgressData[machineIndex];
+
+        // If we're at the beginning of a main step and there's a previous main step
+        if (getCompletedSubSteps(machineIndex) === 0 && machine.currentMainStep > 0) {
+            machine.currentMainStep--;
+            machine.subStepsCompleted = [true, true, true, true, true]; // Set all as completed for previous step
+            machine.operationStatus[machine.currentMainStep] = false;
+            machine.isComplete = false;
+        } else {
+            // Find last completed sub-step and uncomplete it
+            for (var i = machine.subStepsCompleted.length - 1; i >= 0; i--) {
+                if (machine.subStepsCompleted[i]) {
+                    machine.subStepsCompleted[i] = false;
+                    break;
+                }
+            }
+        }
+
+        machineProgressData = machineProgressData;
+    }
+
+    // Function to reset progress
+    function resetProgress(machineIndex) {
+        var machine = machineProgressData[machineIndex];
+        machine.currentMainStep = 0;
+        machine.subStepsCompleted = [false, false, false, false, false];
+        machine.operationStatus = [false, false, false, false];
+        machine.parameters = [false, false, false, false, false, false];
+        machine.isComplete = false;
+        machine.isAutoProgressRunning = false;
+        machineProgressData = machineProgressData;
+    }
+
+    // Function to start/stop auto progress
+    function toggleAutoProgress(machineIndex) {
+        var machine = machineProgressData[machineIndex];
+        machine.isAutoProgressRunning = !machine.isAutoProgressRunning;
+        machineProgressData = machineProgressData;
+    }
+
+    // Get current step name
+    function getCurrentStepName(machineIndex) {
+        var machine = machineProgressData[machineIndex];
+        var stepNames = ["A", "B", "C", "D"];
+        if (machine.isComplete) return "Complete";
+        return stepNames[machine.currentMainStep];
+    }
 
     // Smooth height transition
     Behavior on implicitHeight {
@@ -26,267 +155,41 @@ Rectangle {
         anchors.margins: 15
         spacing: 5
 
-        // Machine tabs - only 6 tubes
+        // Machine tabs
         Repeater {
             model: 6
-            delegate: Item {
+            delegate: MachineTab {
                 width: parent.width
-                height: currentOpenMachine === index ? (37 + 440) : 37
-
-                Behavior on height {
-                    NumberAnimation { duration: 300; easing.type: Easing.OutCubic }
-                }
-
-                Rectangle {
-                    id: machineTab
-                    width: parent.width
-                    height: 37
-                    color: currentOpenMachine === index ? "#e0e0e0" : "#ffffff"
-                    border.color: "#333333"
-                    border.width: 1
-
-                    Row {
-                        anchors.left: parent.left
-                        anchors.leftMargin: 10
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: 10
-
-                        Text {
-                            text: "Tube " + (index + 1)
-                            font.pixelSize: 14
-                            font.bold: true
-                            color: "#333333"
-                        }
-                    }
-
-                    // Dropdown arrow
-                    Text {
-                        anchors.right: parent.right
-                        anchors.rightMargin: 15
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: "˅"
-                        font.pixelSize: 12
-                        color: "#333333"
-                        rotation: currentOpenMachine === index ? 180 : 0
-                        Behavior on rotation {
-                            NumberAnimation { duration: 300 }
-                        }
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: {
-                            if (currentOpenMachine === index) {
-                                currentOpenMachine = -1
-                            } else {
-                                currentOpenMachine = index
-                            }
-                        }
+                machineIndex: index
+                isOpen: currentOpenMachine === index
+                onToggleOpen: {
+                    if (currentOpenMachine === index) {
+                        currentOpenMachine = -1
+                    } else {
+                        currentOpenMachine = index
                     }
                 }
+                onAdvanceNext: advanceNextSubStep(index)
+                onGoBack: goBackSubStep(index)
+                onReset: resetProgress(index)
+                onToggleAuto: toggleAutoProgress(index)
 
-                // Dropdown content
-                Rectangle {
-                    id: dropdownContent
-                    width: parent.width
-                    height: 440
-                    y: 37
-                    color: "#ffffff"
-                    border.color: "#333333"
-                    border.width: 1
-                    visible: currentOpenMachine === index
-                    opacity: currentOpenMachine === index ? 1 : 0
-                    clip: true
+                // Data bindings
+                machineName: "Machine " + (index + 1)
+                currentStepName: getCurrentStepName(index)
+                completedSubSteps: getCompletedSubSteps(index)
+                isComplete: machineProgressData[index] ? machineProgressData[index].isComplete : false
+                isAutoRunning: machineProgressData[index] ? machineProgressData[index].isAutoProgressRunning : false
+                currentMainStep: machineProgressData[index] ? machineProgressData[index].currentMainStep : 0
+                subStepsCompleted: machineProgressData[index] ? machineProgressData[index].subStepsCompleted : [false, false, false, false, false]
+                operationStatus: machineProgressData[index] ? machineProgressData[index].operationStatus : [false, false, false, false]
+                parameters: machineProgressData[index] ? machineProgressData[index].parameters : [false, false, false, false, false, false]
 
-                    Behavior on opacity {
-                        NumberAnimation { duration: 300 }
-                    }
-
-                    Column {
-                        anchors.fill: parent
-                        anchors.margins: 10
-                        spacing: 15
-
-                        // Name section
-                        Row {
-                            width: parent.width
-                            spacing: 10
-                            Text {
-                                text: "Tube "+ (index+1)
-                                font.pixelSize: 12
-                                color: "#333333"
-                                anchors.verticalCenter: parent.verticalCenter
-                            }
-                            Rectangle {
-                                width: 80
-                                height: 20
-                                border.color: "#333333"
-                                border.width: 1
-                                color: "#ffffff"
-
-                                TextInput {
-                                    anchors.fill: parent
-                                    anchors.margins: 3
-                                    font.pixelSize: 10
-                                    verticalAlignment: TextInput.AlignVCenter
-                                }
-                            }
-                        }
-
-                        // Image section
-                        Rectangle {
-                            width: parent.width - 20
-                            height: 60
-                            border.color: "#333333"
-                            border.width: 1
-                            color: "#f8f8f8"
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: "Image"
-                                font.pixelSize: 12
-                                color: "#666666"
-                            }
-                        }
-
-                        // Progress indicators section
-                        Column {
-                            width: parent.width
-                            spacing: 8
-
-                            // Progress bars with labels A, B, C, D
-                            Row {
-                                spacing: 8
-                                Repeater {
-                                    model: ["A", "B", "C", "D"]
-                                    delegate: Column {
-                                        spacing: 3
-                                        Rectangle {
-                                            width: 30
-                                            height: 15
-                                            border.color: "#333333"
-                                            border.width: 1
-                                            color: "#ffffff"
-                                            Text {
-                                                anchors.centerIn: parent
-                                                text: modelData
-                                                font.pixelSize: 8
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Progress circles P1 to P5
-                            Row {
-                                spacing: 15
-                                Text {
-                                    text: "P1"
-                                    font.pixelSize: 8
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-                                Text {
-                                    text: "P2"
-                                    font.pixelSize: 8
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-                                Text {
-                                    text: "P3"
-                                    font.pixelSize: 8
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-                                Text {
-                                    text: "P4"
-                                    font.pixelSize: 8
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-                                Text {
-                                    text: "P5"
-                                    font.pixelSize: 8
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-                            }
-
-                            Row {
-                                spacing: 8
-                                Repeater {
-                                    model: 5
-                                    delegate: Rectangle {
-                                        width: 10
-                                        height: 10
-                                        radius: 5
-                                        border.color: "#333333"
-                                        border.width: 1
-                                        color: "#ffffff"
-                                    }
-                                }
-                            }
-
-                            // Operation status indicators
-                            Grid {
-                                columns: 2
-                                spacing: 5
-                                rowSpacing: 5
-                                columnSpacing: 20
-
-                                Repeater {
-                                    model: ["OP-1", "OP-2", "OP-3", "OP-4"]
-                                    delegate: Row {
-                                        spacing: 5
-                                        Rectangle {
-                                            width: 8
-                                            height: 8
-                                            radius: 4
-                                            border.color: "#333333"
-                                            border.width: 1
-                                            color: "#ffffff"
-                                        }
-                                        Text {
-                                            text: modelData
-                                            font.pixelSize: 8
-                                            color: "#333333"
-                                            anchors.verticalCenter: parent.verticalCenter
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Parameters section
-                            Text {
-                                text: "Parameters"
-                                font.pixelSize: 10
-                                font.bold: true
-                                color: "#333333"
-                            }
-
-                            Grid {
-                                columns: 3
-                                spacing: 5
-                                rowSpacing: 5
-                                columnSpacing: 10
-
-                                Repeater {
-                                    model: ["A", "B", "C", "D", "E", "F"]
-                                    delegate: Row {
-                                        spacing: 3
-                                        Rectangle {
-                                            width: 10
-                                            height: 10
-                                            border.color: "#333333"
-                                            border.width: 1
-                                            color: "#ffffff"
-                                        }
-                                        Text {
-                                            text: modelData
-                                            font.pixelSize: 8
-                                            color: "#333333"
-                                            anchors.verticalCenter: parent.verticalCenter
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                // Event handlers
+                onSubStepToggled: toggleSubStep(index, subIndex)
+                onParameterToggled: {
+                    machineProgressData[index].parameters[paramIndex] = !machineProgressData[index].parameters[paramIndex];
+                    machineProgressData = machineProgressData;
                 }
             }
         }
