@@ -19,12 +19,12 @@ Item {
         }
 
         Grid {
-            columns: 3
+            columns: 2
             spacing: 10
             width: parent.width
 
             Repeater {
-                model: ["A", "B", "C", "D", "E", "F"]
+                model: ["A", "B", "C", "D"]
                 delegate: Row {
                     spacing: 5
                     width: (parent.width - 20) / 3

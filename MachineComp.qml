@@ -13,6 +13,9 @@ Rectangle {
 
     property int currentOpenMachine: -1
 
+    // Signal for close button
+    signal closeRequested()
+
     // Progress data structure for each machine
     property var machineProgressData: {
         var data = {};
@@ -153,7 +156,58 @@ Rectangle {
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.margins: 15
-        spacing: 5
+        spacing: 10
+
+        // Header with title and close button
+        Rectangle {
+            width: parent.width
+            height: 40
+            // color: "#2a2a2a"
+            color:"#1e1e1e"
+            // border.color: "#444444"
+            // border.width: 1
+
+            Row {
+                anchors.left: parent.left
+                anchors.leftMargin: 15
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 10
+
+                Text {
+                    text: "Machine Tubes"
+                    font.pixelSize: 16
+                    font.bold: true
+                    color: "#ffffff"
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+            }
+
+            // Close button
+            Rectangle {
+                width: 30
+                height: 30
+                anchors.right: parent.right
+                anchors.rightMargin: 5
+                anchors.verticalCenter: parent.verticalCenter
+                color: closeMouseArea.containsMouse ? "#f44336" : "transparent"
+                radius: 3
+
+                Text {
+                    anchors.centerIn: parent
+                    text: "✕"
+                    font.pixelSize: 16
+                    color: "#ffffff"
+                    font.bold: true
+                }
+
+                MouseArea {
+                    id: closeMouseArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    onClicked: closeRequested()
+                }
+            }
+        }
 
         // Machine tabs
         Repeater {
@@ -175,8 +229,8 @@ Rectangle {
                 onToggleAuto: toggleAutoProgress(index)
 
                 // Data bindings
-                machineName: "Machine " + (index + 1)
-                currentStepName: getCurrentStepName(index)
+                // machineName: "Machine " + (index + 1)
+                // currentStepName: getCurrentStepName(index)
                 completedSubSteps: getCompletedSubSteps(index)
                 isComplete: machineProgressData[index] ? machineProgressData[index].isComplete : false
                 isAutoRunning: machineProgressData[index] ? machineProgressData[index].isAutoProgressRunning : false
