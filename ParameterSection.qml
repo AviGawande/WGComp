@@ -12,19 +12,19 @@ Item {
         spacing: 8
 
         Text {
-            text: "Parameters"
+            text: "ANAMOLIES"
             font.pixelSize: 12
             font.bold: true
             color: "#ffffff"
         }
 
         Grid {
-            columns: 2
+            columns: 3
             spacing: 10
             width: parent.width
 
             Repeater {
-                model: ["A", "B", "C", "D"]
+                model: ["Warning", "Temperature", "Depth", "Damage","Course","Launch Domain"]
                 delegate: Row {
                     spacing: 5
                     width: (parent.width - 20) / 3
@@ -33,29 +33,9 @@ Item {
                         width: 16
                         height: 16
                         color: parameters[model.index] ?
-                               "#6200ee" : "#3a3a3a"
+                               "red" : "#42BE65"
                         border.color: "#444444"
                         border.width: 1
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: parameters[model.index] ? "✓" : ""
-                            font.pixelSize: 8
-                            color: "#ffffff"
-                        }
-
-                        // Hover effect
-                        scale: mouseArea.containsMouse ? 1.1 : 1.0
-                        Behavior on scale {
-                            NumberAnimation { duration: 150 }
-                        }
-
-                        MouseArea {
-                            id: mouseArea
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            onClicked: root.parameterClicked(model.index)
-                        }
                     }
 
                     Text {

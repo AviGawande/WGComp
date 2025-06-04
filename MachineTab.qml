@@ -352,6 +352,7 @@ Item {
     property string machineName: "Machine"
     property string currentStepName: "A"
     property int completedSubSteps: 0
+    property int maxSubSteps: 4 // Dynamic based on current main step
     property bool isComplete: false
     property bool isAutoRunning: false
     property int currentMainStep: 0
@@ -368,20 +369,20 @@ Item {
     signal subStepToggled(int subIndex)
     signal parameterToggled(int paramIndex)
 
-    // Function to get current image path
+    // Function to get current image path based on main step and sub-progress
     function getCurrentImagePath() {
         var mainStepNames = ["A", "B", "C", "D"];
         var currentMainStepName = mainStepNames[currentMainStep];
         var currentSubStep = completedSubSteps + 1; // Show next step to be completed
 
         // If all sub-steps are completed, show the last image of current main step
-        if (completedSubSteps >= 5) {
-            currentSubStep = 5;
+        if (completedSubSteps >= maxSubSteps) {
+            currentSubStep = maxSubSteps;
         }
 
         // Build the image path
         var imagePath = "qrc:/images/" + currentMainStepName + currentSubStep + ".png";
-        console.log("Loading image: " + imagePath); // Debug log
+        console.log("Loading image: " + imagePath + " (Step: " + currentMainStepName + ", Sub: " + currentSubStep + "/" + maxSubSteps + ")");
         return imagePath;
     }
 
@@ -424,11 +425,11 @@ Item {
             }
 
             // Progress indicator in tab
-            // Text {
-            //     text: "(" + currentStepName + " - " + completedSubSteps + "/5)"
-            //     font.pixelSize: 10
-            //     color: "#aaaaaa"
-            // }
+            Text {
+                text: "(" + currentStepName + " - " + completedSubSteps + "/" + maxSubSteps + ")"
+                font.pixelSize: 10
+                color: "#aaaaaa"
+            }
 
             // Auto progress indicator
             Rectangle {
@@ -497,7 +498,7 @@ Item {
                 width: parent.width
                 spacing: 10
                 Text {
-                    text: "Tube:"
+                    text: "Name:"
                     font.pixelSize: 12
                     color: "#ffffff"
                     anchors.verticalCenter: parent.verticalCenter
@@ -576,7 +577,7 @@ Item {
 
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: currentStepName + (completedSubSteps + 1)
+                                text: currentStepName + (completedSubSteps + 1) + "/" + maxSubSteps
                                 font.pixelSize: 12
                                 color: "#6200ee"
                                 font.bold: true
@@ -594,11 +595,12 @@ Item {
                 isComplete: root.isComplete
             }
 
-            // Sub-Progress Indicators (simplified, no glow)
+            // Sub-Progress Indicators (dynamic based on current step)
             SubProgressBar {
                 width: parent.width
                 height: 60
                 subStepsCompleted: root.subStepsCompleted
+                maxSubSteps: root.maxSubSteps
                 isAutoRunning: root.isAutoRunning
                 onSubStepClicked: {
                     if (!isComplete && !isAutoRunning) {

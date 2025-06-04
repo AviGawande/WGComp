@@ -314,13 +314,14 @@ Item {
     id: root
 
     property var subStepsCompleted: [false, false, false, false, false]
+    property int maxSubSteps: 4 // Dynamic based on current main step
     property bool isAutoRunning: false
 
     signal subStepClicked(int index)
 
     // Function to get next incomplete step
     function getNextIncompleteStep() {
-        for (var i = 0; i < subStepsCompleted.length; i++) {
+        for (var i = 0; i < maxSubSteps; i++) {
             if (!subStepsCompleted[i]) {
                 return i;
             }
@@ -330,7 +331,9 @@ Item {
 
     // Function to determine line state
     function getLineState(lineIndex) {
-        // lineIndex represents the line between step[lineIndex] and step[lineIndex + 1]
+        // Only show lines that are within the current step's range
+        if (lineIndex >= maxSubSteps - 1) return "hidden";
+
         var currentStep = subStepsCompleted[lineIndex];
         var nextStep = subStepsCompleted[lineIndex + 1];
 
@@ -341,17 +344,26 @@ Item {
         }
     }
 
+    // Generate dynamic labels based on maxSubSteps
+    function getStepLabels() {
+        var labels = [];
+        for (var i = 1; i <= maxSubSteps; i++) {
+            labels.push("P" + i);
+        }
+        return labels;
+    }
+
     Column {
         width: parent.width
         spacing: 8
 
-        // P1-P5 labels (simple, no glow)
+        // Dynamic labels based on maxSubSteps
         Row {
             width: parent.width
-            spacing: (parent.width - 100) / 4
+            spacing: maxSubSteps > 1 ? (parent.width - (maxSubSteps * 20)) / (maxSubSteps - 1) : 0
 
             Repeater {
-                model: ["P1", "P2", "P3", "P4", "P5"]
+                model: getStepLabels()
                 delegate: Text {
                     text: modelData
                     font.pixelSize: 10
@@ -367,19 +379,19 @@ Item {
             width: parent.width
             height: 30
 
-            // Connecting lines
+            // Connecting lines (only show lines between existing steps)
             Row {
                 anchors.centerIn: parent
-                spacing: (parent.width - 100) / 4
+                spacing: maxSubSteps > 1 ? (parent.width - (maxSubSteps * 20)) / (maxSubSteps - 1) : 0
 
                 Repeater {
-                    model: 4 // 4 lines between 5 circles
+                    model: Math.max(0, maxSubSteps - 1) // Lines between circles
                     delegate: Item {
                         width: 20
                         height: 30
 
                         property string lineState: getLineState(model.index)
-                        property real lineWidth: (parent.parent.width - 100) / 4
+                        property real lineWidth: maxSubSteps > 1 ? (parent.parent.width - (maxSubSteps * 20)) / (maxSubSteps - 1) : 0
 
                         // Solid line (for completed connections)
                         Rectangle {
@@ -434,13 +446,13 @@ Item {
                 }
             }
 
-            // Progress circles (simple, no glow)
+            // Progress circles (only show circles for current step count)
             Row {
                 anchors.centerIn: parent
-                spacing: (parent.width - 100) / 4
+                spacing: maxSubSteps > 1 ? (parent.width - (maxSubSteps * 20)) / (maxSubSteps - 1) : 0
 
                 Repeater {
-                    model: 5
+                    model: maxSubSteps
                     delegate: Rectangle {
                         width: 20
                         height: 20
@@ -450,16 +462,39 @@ Item {
                         border.color: "#ffffff"
                         border.width: 1
 
-                        // Small inner circle instead of numbers
+                        // Checkmark for completed steps (instead of small circle)
+                        Text {
+                            anchors.centerIn: parent
+                            text: "✓"
+                            font.pixelSize: 12
+                            font.bold: true
+                            color: "#ffffff"
+                            visible: subStepsCompleted[model.index]
+
+                            // Scale animation when appearing
+                            scale: subStepsCompleted[model.index] ? 1.0 : 0.5
+                            opacity: subStepsCompleted[model.index] ? 1.0 : 0.0
+
+                            Behavior on scale {
+                                NumberAnimation { duration: 200 }
+                            }
+
+                            Behavior on opacity {
+                                NumberAnimation { duration: 200 }
+                            }
+                        }
+
+                        // Empty circle indicator for incomplete steps
                         Rectangle {
                             width: 8
                             height: 8
                             radius: 4
                             anchors.centerIn: parent
-                            color: subStepsCompleted[model.index] ? "#ffffff" : "#666666"
+                            color: "#666666"
+                            visible: !subStepsCompleted[model.index]
 
-                            Behavior on color {
-                                ColorAnimation { duration: 200 }
+                            Behavior on opacity {
+                                NumberAnimation { duration: 200 }
                             }
                         }
 
