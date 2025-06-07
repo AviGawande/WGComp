@@ -32,8 +32,15 @@ Item {
                     Rectangle {
                         width: 16
                         height: 16
-                        color: parameters[model.index] ?
-                               "red" : "#42BE65"
+                        color:{
+                            if(modelData === "Warning")
+                                return "red"
+                            else if (modelData === "Launch Domain")
+                                return "orange"
+                            else
+                                return "#4ACF50"
+                        }
+
                         border.color: "#444444"
                         border.width: 1
                     }

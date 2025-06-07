@@ -308,6 +308,219 @@
 //     }
 // }
 
+
+// version2.
+// import QtQuick 2.15
+
+// Item {
+//     id: root
+
+//     property var subStepsCompleted: [false, false, false, false, false]
+//     property int maxSubSteps: 4 // Dynamic based on current main step
+//     property bool isAutoRunning: false
+
+//     signal subStepClicked(int index)
+
+//     // Function to get next incomplete step
+//     function getNextIncompleteStep() {
+//         for (var i = 0; i < maxSubSteps; i++) {
+//             if (!subStepsCompleted[i]) {
+//                 return i;
+//             }
+//         }
+//         return -1; // All completed
+//     }
+
+//     // Function to determine line state
+//     function getLineState(lineIndex) {
+//         // Only show lines that are within the current step's range
+//         if (lineIndex >= maxSubSteps - 1) return "hidden";
+
+//         var currentStep = subStepsCompleted[lineIndex];
+//         var nextStep = subStepsCompleted[lineIndex + 1];
+
+//         if (currentStep && nextStep) {
+//             return "solid"; // Both steps completed - solid line
+//         } else {
+//             return "dotted"; // All other cases - dotted line
+//         }
+//     }
+
+//     // Generate dynamic labels based on maxSubSteps
+//     function getStepLabels() {
+//         var labels = [];
+//         for (var i = 1; i <= maxSubSteps; i++) {
+//             labels.push("P" + i);
+//         }
+//         return labels;
+//     }
+
+//     Column {
+//         width: parent.width
+//         spacing: 8
+
+//         // Dynamic labels based on maxSubSteps
+//         Row {
+//             width: parent.width
+//             spacing: maxSubSteps > 1 ? (parent.width - (maxSubSteps * 20)) / (maxSubSteps - 1) : 0
+
+//             Repeater {
+//                 model: getStepLabels()
+//                 delegate: Text {
+//                     text: modelData
+//                     font.pixelSize: 10
+//                     color: "#aaaaaa"
+//                     width: 20
+//                     horizontalAlignment: Text.AlignHCenter
+//                 }
+//             }
+//         }
+
+//         // Progress circles with connecting lines
+//         Item {
+//             width: parent.width
+//             height: 30
+
+//             // Connecting lines (only show lines between existing steps)
+//             Row {
+//                 anchors.centerIn: parent
+//                 spacing: maxSubSteps > 1 ? (parent.width - (maxSubSteps * 20)) / (maxSubSteps - 1) : 0
+
+//                 Repeater {
+//                     model: Math.max(0, maxSubSteps - 1) // Lines between circles
+//                     delegate: Item {
+//                         width: 20
+//                         height: 30
+
+//                         property string lineState: getLineState(model.index)
+//                         property real lineWidth: maxSubSteps > 1 ? (parent.parent.width - (maxSubSteps * 20)) / (maxSubSteps - 1) : 0
+
+//                         // Solid line (for completed connections)
+//                         Rectangle {
+//                             width: lineWidth
+//                             height: 2
+//                             anchors.centerIn: parent
+//                             color: "#6200ee"
+//                             visible: lineState === "solid"
+
+//                             Behavior on color {
+//                                 ColorAnimation { duration: 300 }
+//                             }
+//                         }
+
+//                         // Dotted line (for all other states)
+//                         Row {
+//                             anchors.centerIn: parent
+//                             spacing: 2
+//                             visible: lineState === "dotted"
+
+//                             Repeater {
+//                                 model: Math.floor(parent.parent.lineWidth / 6) // Number of dashes
+//                                 delegate: Rectangle {
+//                                     width: 4
+//                                     height: 2
+//                                     color: (isAutoRunning && getNextIncompleteStep() === (parent.parent.parent.model.index + 1)) ?
+//                                            "#6200ee" : "#555555"
+
+//                                     // Animated dashes when auto-running and this is the active line
+//                                     SequentialAnimation on opacity {
+//                                         running: isAutoRunning &&
+//                                                 getNextIncompleteStep() === (parent.parent.parent.model.index + 1)
+//                                         loops: Animation.Infinite
+//                                         NumberAnimation {
+//                                             to: 0.3
+//                                             duration: 300 + (model.index * 100) // Staggered animation
+//                                         }
+//                                         NumberAnimation {
+//                                             to: 1.0
+//                                             duration: 300 + (model.index * 100)
+//                                         }
+//                                     }
+
+//                                     // Color transition
+//                                     Behavior on color {
+//                                         ColorAnimation { duration: 300 }
+//                                     }
+//                                 }
+//                             }
+//                         }
+//                     }
+//                 }
+//             }
+
+//             // Progress circles (only show circles for current step count)
+//             Row {
+//                 anchors.centerIn: parent
+//                 spacing: maxSubSteps > 1 ? (parent.width - (maxSubSteps * 20)) / (maxSubSteps - 1) : 0
+
+//                 Repeater {
+//                     model: maxSubSteps
+//                     delegate: Rectangle {
+//                         width: 16
+//                         height: 16
+//                         radius: 8
+//                         color: subStepsCompleted[model.index] ?
+//                                "#6200ee" : "#3a3a3a"
+//                         border.color: "#ffffff"
+//                         border.width: 1
+
+//                         // Checkmark for completed steps (instead of small circle)
+//                         Text {
+//                             anchors.centerIn: parent
+//                             text: "✓"
+//                             font.pixelSize: 10
+//                             font.bold: true
+//                             color: "#ffffff"
+//                             visible: subStepsCompleted[model.index]
+
+//                             // Scale animation when appearing
+//                             scale: subStepsCompleted[model.index] ? 1.0 : 0.5
+//                             opacity: subStepsCompleted[model.index] ? 1.0 : 0.0
+
+//                             Behavior on scale {
+//                                 NumberAnimation { duration: 200 }
+//                             }
+
+//                             Behavior on opacity {
+//                                 NumberAnimation { duration: 200 }
+//                             }
+//                         }
+
+//                         // Empty circle indicator for incomplete steps
+//                         Rectangle {
+//                             width: 8
+//                             height: 8
+//                             radius: 4
+//                             anchors.centerIn: parent
+//                             color: "#666666"
+//                             visible: !subStepsCompleted[model.index]
+
+//                             Behavior on opacity {
+//                                 NumberAnimation { duration: 200 }
+//                             }
+//                         }
+
+//                         // Hover effect
+//                         scale: mouseArea.containsMouse ? 1.1 : 1.0
+//                         Behavior on scale {
+//                             NumberAnimation { duration: 150 }
+//                         }
+
+//                         MouseArea {
+//                             id: mouseArea
+//                             anchors.fill: parent
+//                             hoverEnabled: !isAutoRunning
+//                             onClicked: root.subStepClicked(model.index)
+//                         }
+//                     }
+//                 }
+//             }
+//         }
+//     }
+// }
+
+
+//version.3
 import QtQuick 2.15
 
 Item {
