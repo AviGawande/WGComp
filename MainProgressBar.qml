@@ -64,8 +64,67 @@
 // }
 
 
-//version.3
+// //version.3
 
+// import QtQuick 2.15
+
+// Item {
+//     id: root
+
+//     property int currentStep: 0
+//     property bool isComplete: false
+
+//     Row {
+//         anchors.centerIn: parent
+//         spacing: (parent.width - 120) / 3 // Dynamic spacing
+
+//         Repeater {
+//             model: ["A", "B", "C", "D"]
+//             delegate: Item {
+//                 width: 30
+//                 height: 20
+
+//                 Rectangle {
+//                     width:30
+//                     height:20
+//                     color: (index <= currentStep) ? "#6200ee" : "#3a3a3a"
+//                     border.color: "#ffffff"
+//                     border.width: 2
+
+//                     Text {
+//                         anchors.centerIn: parent
+//                         text: (index < currentStep || (index === currentStep && isComplete)) ? "✓" : modelData
+//                         font.pixelSize: 16
+//                         font.bold: true
+//                         color: "#ffffff"
+//                     }
+
+//                     Behavior on color {
+//                         ColorAnimation { duration: 300 }
+//                     }
+//                 }
+
+//                 // Connecting line (except for last item)
+//                 Rectangle {
+//                     visible: index < 3
+//                     width: (parent.parent.width - 120) / 3
+//                     height: 2
+//                     color: (index < currentStep) ? "#6200ee" : "#555555"
+//                     anchors.left: parent.right
+//                     anchors.verticalCenter: parent.verticalCenter
+
+//                     Behavior on color {
+//                         ColorAnimation { duration: 300 }
+//                     }
+//                 }
+//             }
+//         }
+//     }
+// }
+
+
+
+// version v4. updated with state management
 import QtQuick 2.15
 
 Item {
@@ -73,6 +132,11 @@ Item {
 
     property int currentStep: 0
     property bool isComplete: false
+    // NEW: Property to control if a main step is clickable
+    property bool currentStepClickable: false
+
+    // NEW: Signal to emit when a main step is clicked
+    signal mainStepClicked(int index)
 
     Row {
         anchors.centerIn: parent
@@ -87,13 +151,13 @@ Item {
                 Rectangle {
                     width:30
                     height:20
-                    color: (index <= currentStep) ? "#6200ee" : "#3a3a3a"
+                    color: (index <= root.currentStep) ? "#6200ee" : "#3a3a3a"
                     border.color: "#ffffff"
                     border.width: 2
 
                     Text {
                         anchors.centerIn: parent
-                        text: (index < currentStep || (index === currentStep && isComplete)) ? "✓" : modelData
+                        text: (index < root.currentStep || (index === root.currentStep && root.isComplete)) ? "✓" : modelData
                         font.pixelSize: 16
                         font.bold: true
                         color: "#ffffff"
@@ -102,6 +166,17 @@ Item {
                     Behavior on color {
                         ColorAnimation { duration: 300 }
                     }
+
+                    // NEW: MouseArea to make the step clickable
+                    MouseArea {
+                        anchors.fill: parent
+                        // Only enable click for the current step if it's explicitly allowed
+                        enabled: index === root.currentStep && root.currentStepClickable && !root.isComplete
+                        cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                        onClicked: {
+                            root.mainStepClicked(index)
+                        }
+                    }
                 }
 
                 // Connecting line (except for last item)
@@ -109,7 +184,7 @@ Item {
                     visible: index < 3
                     width: (parent.parent.width - 120) / 3
                     height: 2
-                    color: (index < currentStep) ? "#6200ee" : "#555555"
+                    color: (index < root.currentStep) ? "#6200ee" : "#555555"
                     anchors.left: parent.right
                     anchors.verticalCenter: parent.verticalCenter
 
